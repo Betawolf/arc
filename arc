@@ -1,16 +1,25 @@
 #!/bin/bash
 
-
 #Where you want the archive to be stored locally (absolute path).
 ARCHIVEDIR=~/.arc
+
 #The list of what passes for metadata.
 INDEX=$ARCHIVEDIR/.index.csv
+
 
 bold=`tput bold`
 normal=`tput sgr0`
 
+if [ -z $EDITOR ]
+then
+ EDITOR=nano
+fi
+
 arcadd(){
+    #`arcadd` Takes a URL, downloads and processes the document.
+    # This includes extraction of text and provision for a comments file.
     TMPDIR=$ARCHIVEDIR/.temp
+    INPAGE=$ARCHIVEDIR/index.html
     INFILE=$TMPDIR/sourcefile
     TXTFILE=$TMPDIR/plaintext.txt
     COMFILE=$TMPDIR/comment.md
@@ -42,7 +51,7 @@ arcadd(){
     # - extract title according to mimetype.
     case $mime in
         "text/html")
-            #Webpage, hopefully with all the content. Transform to markdownish.
+            #Webpage, hopefully with all the content. Transform to gfmish.
             ext=html
             title=$(grep "<title" $INFILE | head -1 |  sed 's/.*<title[^>]*>\([^<]*\)<\/title>.*/\1/')
             html2text $INFILE > $TXTFILE;;
@@ -65,7 +74,7 @@ arcadd(){
 
     #Create template for comment file.
     echo "#$title" > $COMFILE
-    echo "[[source]($id/source.$ext)]" >> $COMFILE
+    echo "[[source](./source.$ext)]" >> $COMFILE
     echo "" >> $COMFILE
     echo "> The best guess about the file's title is above. This is used to form the ID." >> $COMFILE
     echo "> This is the comments file. Remove any lines below you don't want to quote." >> $COMFILE
@@ -87,6 +96,7 @@ arcadd(){
     cp $INFILE $NEWDIR/source.$ext
     cp $TXTFILE $NEWDIR/plaintext.txt
     cp $COMFILE $NEWDIR/comment.md
+    arcrender $id $title
 
     #Update the index
     dated=$(date -I)
@@ -96,11 +106,36 @@ arcadd(){
     echo "Date: $dated"
     echo "ID: $id"
     echo "Origin: $URL"
+
+    #Write .md from csv.
+    mdfile=index.md
+    echo "# arc : contents" > $mdfile
+    echo -e "\n\n The arc system stores articles and my associated annotation.\n Below is the current list of articles, with links to the comments.\n" >> $mdfile
+    echo "Title|Date|Origin|Comment" >> $mdfile
+    echo "---|---|---|---" >> $mdfile
+    paste -d'|' <(cut -f3 -d, $INDEX | sed 's/"//g') <(cut -f2 -d, $INDEX) <(cut -f4 -d, $INDEX | sed 's/"//g') <(cut -f1 -d, $INDEX | sed 's/^/[comment](/' | sed 's/$/\/index.html)/') | tail -n +2  | sort -u >> $mdfile 
+
+    #Rebuild the index page.
+    echo -e "<html>\n<head><title>arc</title>\n<link rel='stylesheet' type='text/css' href='styleless.css'/>\n</head><body>" > $INPAGE
+    gfm $mdfile >> $INPAGE
+    echo -e "</body>\n</html>" >> $INPAGE
 }
 
 arcidpartmatch(){
     #Turns any part of any csv field into the matching IDs.
-    grep $1 $INDEX | cut -f 1 -d ,
+    st=$(echo $1 | tr '[:upper:]' '[:lower:]' | tr '[:punct:]|[:blank:]' '-')
+    matches=$(grep $1 $INDEX | cut -f 1 -d ,)
+    rcount=$(echo $matches | wc -w)
+    if [ $rcount>1 ] 
+    then
+        for id in $matches
+        do
+            echo $id
+            break
+        done
+    else    
+        echo $matches
+    fi
 }
 
 arcidtitle(){
@@ -122,12 +157,49 @@ arcgrep(){
  done
 }
 
+arcopen(){
+    id=$(arcidpartmatch $1)
+    echo $id
+    mimeopen $ARCHIVEDIR/$id/source.*
+}
+
+arcbrowse(){
+    id=$(arcidpartmatch $1)
+    title=$(arcidtitle $id)
+    arcrender $id $title
+    xdg-open $ARCHIVEDIR/$id/index.html
+}
+
+arccomment(){
+    id=$(arcidpartmatch $1)
+    title=$(arcidtitle $id)
+    echo $id
+    $EDITOR $ARCHIVEDIR/$id/comment.md
+    arcrender $id $title
+}
+
+arcrender(){
+    id=$1
+    title=$2
+    mdfile=$ARCHIVEDIR/$id/comment.md
+    render=$ARCHIVEDIR/$id/index.html
+    echo -e "<html>\n<head><title>$title</title>\n<link rel='stylesheet' type='text/css' href='../styleless.css'/>\n</head><body>" > $render
+    markdown $mdfile >> $render
+    echo -e "<a href='../index.html'>[home]</a>\n</body>\n</html>" >> $render
+}
+
 #Farm out subcommands.
 case $1 in
     "add")
     arcadd $2;;
     "search"|"grep")
     arcgrep $2;;
+    "open"|"view")
+    arcopen $2;;
+    "comment")
+    arccomment $2;;
+    "browse")
+    arcbrowse $2;;
     *)
-    cho "Not Implemented";;
+    echo "Not Implemented";;
 esac
