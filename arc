@@ -6,6 +6,9 @@ ARCHIVEDIR=~/.arc
 #The list of what passes for metadata.
 INDEX=$ARCHIVEDIR/.index.csv
 
+bold=`tput bold`
+normal=`tput sgr0`
+
 arcadd(){
     TMPDIR=$ARCHIVEDIR/.temp
     INFILE=$TMPDIR/sourcefile
@@ -38,11 +41,6 @@ arcadd(){
     # - Create 'plaintext.txt'.
     # - extract title according to mimetype.
     case $mime in
-        "text/plain")
-            #Already text, so source is just duplicate.
-            ext=txt
-            title=$(head -1 $INFILE)
-            cp $INFILE $TXTFILE;;
         "text/html")
             #Webpage, hopefully with all the content. Transform to markdownish.
             ext=html
@@ -53,6 +51,11 @@ arcadd(){
             ext=pdf
             title=$(pdfinfo $INFILE | grep 'Title:' | sed 's/Title:[ ]*\(.*\)/\1/')
             pdftotext $INFILE $TXTFILE;;
+        text/*)
+            #Already some form of text, so source is just duplicate.
+            ext=txt
+            title=$(head -1 $INFILE)
+            cp $INFILE $TXTFILE;;
         *) 
             #Not sure, don't know how to extract info.
             ext=''
@@ -62,9 +65,10 @@ arcadd(){
 
     #Create template for comment file.
     echo "#$title" > $COMFILE
+    echo "[[source]($id/source.$ext)]" >> $COMFILE
+    echo "" >> $COMFILE
     echo "> The best guess about the file's title is above. This is used to form the ID." >> $COMFILE
     echo "> This is the comments file. Remove any lines below you don't want to quote." >> $COMFILE
-    echo "" >> $COMFILE
     echo "" >> $COMFILE
     awk '{printf "> %s\n", $0}' < $TXTFILE >> $COMFILE
 
@@ -72,7 +76,7 @@ arcadd(){
     $EDITOR $COMFILE
 
     #New title
-    title=$(head -1 $COMFILE | sed 's/^#//')
+    title=$(head -1 $COMFILE | sed 's/^#//' | sed 's/,/;/g')
 
     #Form ID string
     id=$(echo $title | tr '[:upper:]' '[:lower:]' | tr '[:punct:]|[:blank:]' '-' | sed 's/-*$//')
@@ -94,9 +98,36 @@ arcadd(){
     echo "Origin: $URL"
 }
 
+arcidpartmatch(){
+    #Turns any part of any csv field into the matching IDs.
+    grep $1 $INDEX | cut -f 1 -d ,
+}
+
+arcidtitle(){
+    #Searches for a presentation title for an ID.
+    grep $1 $INDEX | cut -f 3 -d , | sed 's/"//g'
+}
+
+arcgrep(){
+ matches=$(grep -lm 1 $1 $ARCHIVEDIR/*/plaintext.txt | sed 's/.*\/\([^\/]*\)\/plaintext.txt/\1/')
+ rcount=$(echo $matches | wc -w)
+ echo ${bold}$rcount matches found: ${normal}
+ echo ""
+ for id in $matches
+ do
+    title=$(arcidtitle $id)
+    echo " ${bold}$title${normal}"
+    echo " "$(grep -hA 2 -m 3 $1 $ARCHIVEDIR/$id/plaintext.txt)
+    echo " "
+ done
+}
+
+#Farm out subcommands.
 case $1 in
     "add")
     arcadd $2;;
+    "search"|"grep")
+    arcgrep $2;;
     *)
-    echo "Not Implemented";;
+    cho "Not Implemented";;
 esac

@@ -28,6 +28,12 @@ should cause the system to open the specified text in the appropriate program
 
 
 ```{bash}
+arc view <id>
+```
+should cause the system to open the annotations for the  specified text in the browser
+
+
+```{bash}
 arc sync 
 ```
 should cause the system to sync its contents with a specified remote repository
