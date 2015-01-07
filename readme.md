@@ -2,7 +2,7 @@
 
 Arc is designed for saving and annotating things. Specifically, interesting texts found online.
 
-Intended functionality:
+Usage:
 
 ```{bash}
 arc add <url>
@@ -39,6 +39,9 @@ should cause the system to open the annotations for the  specified text in the b
 
 
 ```{bash}
-arc sync 
+arc sync <location> <cmd>
 ```
-should cause the system to sync its contents with a specified remote repository
+should cause the system to sync its contents with a specified remote repository, using
+`rsync -e "<cmd>"` to make the connection (these variables can be edited directly at the
+top of the script.)
+

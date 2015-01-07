@@ -3,13 +3,16 @@
 
 #Where you want the archive to be stored locally (absolute path).
 ARCHIVEDIR=~/.arc
+#Temporary working directory.
+TMPDIR=$ARCHIVEDIR/.temp
 
-#A remote backup location
-#BACKUPDIR=''
+#A remote backup location (e.g. jim@jimsarchive.net:~/pileofstuff)
+#REMOTEDIR=''
+#Command to use to connect (e.g. 'ssh -p <port>' for a nonstandard port)
+#RSYNCMD=''
 
 #The list of what passes for metadata.
 INDEX=$ARCHIVEDIR/.index.csv
-
 
 bold=`tput bold`
 normal=`tput sgr0`
@@ -22,8 +25,6 @@ fi
 arcadd(){
     #`arcadd` Takes a URL, downloads and processes the document.
     # This includes extraction of text and provision for a comments file.
-    TMPDIR=$ARCHIVEDIR/.temp
-    INPAGE=$ARCHIVEDIR/index.html
     INFILE=$TMPDIR/sourcefile
     TXTFILE=$TMPDIR/plaintext.txt
     COMFILE=$TMPDIR/comment.md
@@ -108,10 +109,17 @@ arcadd(){
     cp $INFILE $NEWDIR/source.$ext
     cp $TXTFILE $NEWDIR/plaintext.txt
     cp $COMFILE $NEWDIR/comment.md
-    arcrender $id $title
+    arcrender "$id" "$title"
+
+    arcmain
+    echo "File archived."
+}
+
+arcmain(){
+    INPAGE=$ARCHIVEDIR/index.html
 
     #Write .md from csv.
-    mdfile=index.md
+    mdfile=$TMPDIR/index.md
     echo "# arc : contents" > $mdfile
     echo -e "\n\n The arc system stores articles and my associated annotation.\n Below is the current list of articles, with links to the comments.\n" >> $mdfile
     echo "Title|Date|Origin|Comment" >> $mdfile
@@ -122,7 +130,6 @@ arcadd(){
     echo -e "<html>\n<head><title>arc</title>\n<link rel='stylesheet' type='text/css' href='styleless.css'/>\n</head><body>" > $INPAGE
     gfm $mdfile >> $INPAGE
     echo -e "</body>\n</html>" >> $INPAGE
-    echo "File archived."
 }
 
 arcidpartmatch(){
@@ -148,7 +155,7 @@ arcidtitle(){
 }
 
 arcgrep(){
- matches=$(grep -lm 1 $1 $ARCHIVEDIR/*/plaintext.txt | sed 's/.*\/\([^\/]*\)\/plaintext.txt/\1/')
+ matches=$(grep -lm 1 "$1" $ARCHIVEDIR/*/plaintext.txt | sed 's/.*\/\([^\/]*\)\/plaintext.txt/\1/')
  rcount=$(echo $matches | wc -w)
  echo ${bold}$rcount matches found: ${normal}
  echo ""
@@ -156,7 +163,7 @@ arcgrep(){
  do
     title=$(arcidtitle $id)
     echo " ${bold}$title${normal}"
-    echo " "$(grep -hA 2 -m 3 $1 $ARCHIVEDIR/$id/plaintext.txt)
+    echo " "$(grep -hA 2 -m 3 "$1" $ARCHIVEDIR/$id/plaintext.txt)
     echo " "
  done
 }
@@ -169,20 +176,21 @@ arcopen(){
 
 arcbrowse(){
     id=$(arcidpartmatch $1)
-    title=$(arcidtitle $id)
-    arcrender $id $title
     xdg-open $ARCHIVEDIR/$id/index.html
 }
 
 arccomment(){
+    #open the comments file for editing
+    #then render the result
     id=$(arcidpartmatch $1)
     title=$(arcidtitle $id)
     echo $id
     $EDITOR $ARCHIVEDIR/$id/comment.md
-    arcrender $id $title
+    arcrender "$id" "$title"
 }
 
 arcrender(){
+    #render a comments file into HTML
     id=$1
     title=$2
     mdfile=$ARCHIVEDIR/$id/comment.md
@@ -192,18 +200,31 @@ arcrender(){
     echo -e "<a href='../index.html'>[home]</a>\n</body>\n</html>" >> $render
 }
 
+arcsync(){
+    if [ -n "$1" ]
+    then
+        REMOTEDIR="$1"
+        RSYNCMD="$2"
+    fi
+    rsync -az -e "$RSYNCMD" $ARCHIVEDIR/* $REMOTEDIR 
+}
+
 #Farm out subcommands.
 case $1 in
     "add")
-    arcadd $2;;
+        arcadd "$2";;
     "search"|"grep")
-    arcgrep $2;;
+        arcgrep "$2";;
     "open"|"view")
-    arcopen $2;;
+        arcopen "$2";;
     "comment")
-    arccomment $2;;
+        arccomment "$2";;
     "browse")
-    arcbrowse $2;;
+        arcbrowse "$2";;
+    "sync")
+        arcsync "$2" "$3";;
+    "refresh")
+        arcmain;;
     *)
     echo "Not Implemented";;
 esac
