@@ -17,6 +17,7 @@ INDEX=$ARCHIVEDIR/.index.csv
 bold=`tput bold`
 normal=`tput sgr0`
 
+#define $EDITOR if the fools haven't
 if [ -z $EDITOR ]
 then
  EDITOR=nano
@@ -111,6 +112,7 @@ arcadd(){
     cp $COMFILE $NEWDIR/comment.md
     arcrender "$id" "$title"
 
+    #Re-render index page.
     arcmain
     echo "File archived."
 }
@@ -155,26 +157,29 @@ arcidtitle(){
 }
 
 arcgrep(){
- matches=$(grep -lm 1 "$1" $ARCHIVEDIR/*/plaintext.txt | sed 's/.*\/\([^\/]*\)\/plaintext.txt/\1/')
- rcount=$(echo $matches | wc -w)
- echo ${bold}$rcount matches found: ${normal}
- echo ""
- for id in $matches
- do
-    title=$(arcidtitle $id)
-    echo " ${bold}$title${normal}"
-    echo " "$(grep -hA 2 -m 3 "$1" $ARCHIVEDIR/$id/plaintext.txt)
-    echo " "
- done
+    #Prints out a title+snippet for each article with text matching the string input.
+    matches=$(grep -lm 1 "$1" $ARCHIVEDIR/*/plaintext.txt | sed 's/.*\/\([^\/]*\)\/plaintext.txt/\1/')
+    rcount=$(echo $matches | wc -w)
+    echo ${bold}$rcount matches found: ${normal}
+    echo ""
+    for id in $matches
+    do
+       title=$(arcidtitle $id)
+       echo " ${bold}$title${normal}"
+       echo " "$(grep -hA 2 -m 3 "$1" $ARCHIVEDIR/$id/plaintext.txt)
+       echo " "
+    done
 }
 
 arcopen(){
+    #opens a file in the appropriate viewer
     id=$(arcidpartmatch $1)
     echo $id
     mimeopen $ARCHIVEDIR/$id/source.*
 }
 
 arcbrowse(){
+    #gets the browser to open the comments for a file
     id=$(arcidpartmatch $1)
     xdg-open $ARCHIVEDIR/$id/index.html
 }
@@ -201,12 +206,20 @@ arcrender(){
 }
 
 arcsync(){
+    #sync the archive with a remote directory
     if [ -n "$1" ]
     then
         REMOTEDIR="$1"
         RSYNCMD="$2"
     fi
-    rsync -az -e "$RSYNCMD" $ARCHIVEDIR/* $REMOTEDIR 
+
+    #If we have a target, try to sync.
+    if [ -n "$REMOTEDIR" ]
+    then
+        rsync -az -e "$RSYNCMD" $ARCHIVEDIR/* $REMOTEDIR 
+    else
+        echo "No target directory supplied."
+    fi
 }
 
 #Farm out subcommands.
@@ -226,5 +239,7 @@ case $1 in
     "refresh")
         arcmain;;
     *)
-    echo "Not Implemented";;
+    echo "Usage: arc <cmd> <args>"
+    echo -e "Where <cmd> is in:\n\tadd <url>\n\tsearch <string>\n\topen <id>\n\tcomment <id>\n\tbrowse <id>\n\tsync <remotedir> <rsync cmd>\n\trefresh"
+    echo -e "It is not usually necessary to write full <id> strings.\n<id> options will operate on the first title matching that substring.";;
 esac
