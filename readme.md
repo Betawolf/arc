@@ -7,13 +7,14 @@ Usage:
 ```{bash}
 arc add <url>
 ```
-should cause the system to 
-	1. download the specified file, 
-	2. detect the mimetype
-	3. extract the text into a .txt version for searc purposes
-	4. extract or guess at the title
-	5. open $EDITOR with the title pre-loaded for editing, and ready to accept annotation
-	6. save the article under the specified title id, storing a log in a master file
+should cause the system to :
+
+1. download the specified file, 
+2. detect the mimetype
+3. extract the text into a .txt version for searc purposes
+4. extract or guess at the title
+5. open $EDITOR with the title pre-loaded for editing, and ready to accept annotation
+6. save the article under the specified title id, storing a log in a master file
 
 ```{bash}
 arc search <txt>

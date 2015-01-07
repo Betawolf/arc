@@ -1,4 +1,4 @@
-# Maintainer: Matthew Edwards <betawolf33@yahoo.com>
+# Maintainer: Matthew Edwards <betawolf33 at yahoo dot com>
 pkgname=arc
 pkgver=0.1
 pkgrel=1
