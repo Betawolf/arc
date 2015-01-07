@@ -1,7 +1,11 @@
 #!/bin/bash
 
+
 #Where you want the archive to be stored locally (absolute path).
 ARCHIVEDIR=~/.arc
+
+#A remote backup location
+#BACKUPDIR=''
 
 #The list of what passes for metadata.
 INDEX=$ARCHIVEDIR/.index.csv
@@ -90,6 +94,14 @@ arcadd(){
     #Form ID string
     id=$(echo $title | tr '[:upper:]' '[:lower:]' | tr '[:punct:]|[:blank:]' '-' | sed 's/-*$//')
 
+    #Update the index
+    dated=$(date -I)
+    echo $id","$dated",\""$title"\",\""$URL"\"" >> $INDEX
+    echo "Title: $(echo $title)"
+    echo "Date: $dated"
+    echo "ID: $id"
+    echo "Origin: $URL"
+
     #Move files into dir
     NEWDIR=$ARCHIVEDIR/$id
     mkdir $NEWDIR
@@ -97,15 +109,6 @@ arcadd(){
     cp $TXTFILE $NEWDIR/plaintext.txt
     cp $COMFILE $NEWDIR/comment.md
     arcrender $id $title
-
-    #Update the index
-    dated=$(date -I)
-    echo "$id,$dated,\"$title\",\"$URL\"" >> $INDEX
-    echo "File archived."
-    echo "Title: $title"
-    echo "Date: $dated"
-    echo "ID: $id"
-    echo "Origin: $URL"
 
     #Write .md from csv.
     mdfile=index.md
@@ -119,6 +122,7 @@ arcadd(){
     echo -e "<html>\n<head><title>arc</title>\n<link rel='stylesheet' type='text/css' href='styleless.css'/>\n</head><body>" > $INPAGE
     gfm $mdfile >> $INPAGE
     echo -e "</body>\n</html>" >> $INPAGE
+    echo "File archived."
 }
 
 arcidpartmatch(){

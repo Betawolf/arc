@@ -24,11 +24,16 @@ should cause the system to do a full-text search for matches and present the res
 ```{bash}
 arc open <id>
 ```
-should cause the system to open the specified text in the appropriate program
-
+should cause the system to open the specified text in the appropriate program, where <id> can
+be a partial id, the system soft-matching to the simplest choice for the input
 
 ```{bash}
-arc view <id>
+arc comment <id>
+```
+should cause the system to open the comments file for editing, and render it on closing.
+
+```{bash}
+arc browse <id>
 ```
 should cause the system to open the annotations for the  specified text in the browser
 
