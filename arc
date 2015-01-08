@@ -59,7 +59,7 @@ arcadd(){
         "text/html")
             #Webpage, hopefully with all the content. Transform to gfmish.
             ext=html
-            title=$(grep "<title" $INFILE | head -1 |  sed 's/.*<title[^>]*>\([^<]*\)<\/title>.*/\1/')
+            title=$(grep -i "<title" $INFILE | head -1 |  sed 's/.*<title[^>]*>\([^<]*\)<\/title>.*/\1/')
             html2text $INFILE > $TXTFILE;;
         "application/pdf")
             #PDF.
@@ -137,9 +137,9 @@ arcmain(){
 arcidpartmatch(){
     #Turns any part of any csv field into the matching IDs.
     st=$(echo $1 | tr '[:upper:]' '[:lower:]' | tr '[:punct:]|[:blank:]' '-')
-    matches=$(grep $1 $INDEX | cut -f 1 -d ,)
+    matches=$(grep $st $INDEX | cut -f 1 -d ,)
     rcount=$(echo $matches | wc -w)
-    if [ $rcount>1 ] 
+    if [ $rcount -gt 1 ] 
     then
         for id in $matches
         do
@@ -222,6 +222,10 @@ arcsync(){
     fi
 }
 
+arclist(){
+    cut -f 1 -d, $INDEX | tail -n +2
+}
+
 #Farm out subcommands.
 case $1 in
     "add")
@@ -238,8 +242,12 @@ case $1 in
         arcsync "$2" "$3";;
     "refresh")
         arcmain;;
+    "list")
+        arclist;;
+    "test")
+        arcidpartmatch "$2";;
     *)
     echo "Usage: arc <cmd> <args>"
-    echo -e "Where <cmd> is in:\n\tadd <url>\n\tsearch <string>\n\topen <id>\n\tcomment <id>\n\tbrowse <id>\n\tsync <remotedir> <rsync cmd>\n\trefresh"
+    echo -e "Where <cmd> is in:\n\tadd <url>\n\tsearch <string>\n\topen <id>\n\tcomment <id>\n\tbrowse <id>\n\tsync <remotedir> <rsync cmd>\n\trefresh\n\tlist"
     echo -e "It is not usually necessary to write full <id> strings.\n<id> options will operate on the first title matching that substring.";;
 esac
