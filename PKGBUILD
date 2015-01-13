@@ -10,6 +10,7 @@ depends=('ncurses' 'rsync' 'sed' 'bash' 'wget' 'perl-file-mimeinfo' 'python-html
 makedepends=('git')
 source=('git+https://github.com/Betawolf/arc.git')
 md5sums=('SKIP')
+provides=('arc')
 
 package(){
       install -Dm755 "$srcdir/$pkgname/arc" "$pkgdir/usr/bin/arc"

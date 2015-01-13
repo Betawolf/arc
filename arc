@@ -151,9 +151,14 @@ arcidpartmatch(){
     fi
 }
 
+arcsource(){
+    #Searches for a source URL for an ID.
+    grep "$1" $INDEX | cut -f 4 -d , | sed 's/"\([^"]*\)"/<\1>/g'
+}
+
 arcidtitle(){
     #Searches for a presentation title for an ID.
-    grep $1 $INDEX | cut -f 3 -d , | sed 's/"//g'
+    grep "$1" $INDEX | cut -f 3 -d , | sed 's/"//g'
 }
 
 arcgrep(){
@@ -238,6 +243,8 @@ case $1 in
         arccomment "$2";;
     "browse")
         arcbrowse "$2";;
+    "source")
+        arcsource "$2";;
     "sync")
         arcsync "$2" "$3";;
     "refresh")
